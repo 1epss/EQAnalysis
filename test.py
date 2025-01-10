@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
-from obspy import *
 import os
 
-# Write staion.dat for ph2dt
+
+# Write station.dat for ph2dt
 def write_station_file(instrument, filename):
     csv = pd.read_csv(instrument)
     with open(filename, 'a') as f:
@@ -12,29 +12,66 @@ def write_station_file(instrument, filename):
             f.write(line)
     return f
 
-# Write phase.dat for ph2dt
-def write_phase_file(event, waveform_directory, traveltime, filename):
-    csv = pd.read_csv(event)
-    eventlist = os.listdir(waveform_directory)
+
+# Write traveltime.dat from hypoel.out
+def write_traveltime_file(hypoel_out):
+    with open(hypoel_out, 'r') as f:
+        a = f.readlines()
     
+    start_condition = np.array([ 'travel times and delays' in line for line in a ])
+    end_condition = np.array([ 'magnitude data' in line for line in a ])
+    start = np.where(start_condition == True) 
+    end = np.where(end_condition == True)
+
+    for i in range(len(start[0])):
+        d = pd.DataFrame(a[start[0][i]:end[0][i]][:-1])
+        for idx, j in d.iterrows():
+            component = j[0].split()
+            if idx == 0:
+                continue
+            elif idx == 1 :
+                df = pd.DataFrame(columns = component)
+            else :
+                comp_extended = component + [np.nan] * (df.shape[1] - len(component))
+                dummy_df = pd.DataFrame([comp_extended], columns=df.columns)
+                df = pd.concat([df, dummy_df], ignore_index=True)
+                df = df.loc[:, ~df.columns.duplicated()]
+
+        tt_list = []
+        with open('traveltime.dat', 'a') as g:
+            for idx2, k in df.iterrows():
+                if 'P' in str(k['pha']):
+                    tt_list.append((k['stn'], float(k['ain']), 1.0, 'P'))
+                if 'S' in str(k['remk']):  
+                    tt_list.append((k['stn'], float(k['dist']), 1.0, 'S'))    
+
+                nobs_line = "{:<7s} {:>7.3f} {:>.0f} {:s}\n".format(tt_list[-1][0], tt_list[-1][1], tt_list[-1][2], tt_list[-1][3]) 
+                g.write(nobs_line)
+    return g
+
+
+# Write phase.dat for ph2dt
+def write_phase_file(event, traveltime, filename):
+    csv = pd.read_csv(event)
+
     with open(filename, 'a') as f:
+        with open(traveltime, "r") as g:
+            line = g.readlines()
+            
+        blank_line = 0
         for idx, i in csv.iterrows():
             travel_line = "{:.0f} {:.0f} {:.0f} {:.0f} {:.0f} {:.2f} {:.4f} {:.4f} {:.2f} {:.2f} {:.2f} {:.2f} {:.2f} {:d}\n".format(
                 i['YR'], i['MO'], i['DY'], i['HR'], i['MI'], i['SC'], i['LAT'], i['LON'], i['DEP'], i['MAG'], i['EH1'], i['EZ'], i['RMS'], idx + 1) 
             f.write(travel_line)
             
-        for event in eventlist:
-            waveformlist = os.listdir(f'{waveform_directory}/{event}')
-            for waveform in waveformlist:
-                if not waveform.endswith('.sac'):
-                    continue
-                st = read(f'{waveform_directory}/{event}/{waveform}')
-                sta = st[0].stats.station
-                #tt = 
-                wght = 1.0
-                nobs_line = "{:>7s} {:.0f} {:.0f} {:.0f}\n".format(sta, i['MO'], i['DY'], i['HR']) 
-            
+            for idx2, nobs_line in enumerate(line[blank_line:]):
+                if nobs_line.strip() == "":
+                    blank_line += idx2 + 1
+                    break
+                f.write(nobs_line)         
     return f
 
+
 #write_station_file(instrument = './korea_instrument_2024_Ahn.csv', filename = 'station.dat')
-#write_phase_file(event = './event.csv', waveform_directory = '../cc_final', traveltime = 'kimetalhypoel.out', filename = 'phase.dat')
+#write_traveltime_file(hypoel = 'kimetalhypoel.out')
+#write_phase_file(event = './event.csv', traveltime = 'traveltime.dat', filename = 'phase.dat')
