@@ -14,7 +14,7 @@ def write_station_file(instrument, filename):
 
 
 # Write traveltime.dat from hypoel.out
-def write_traveltime_file(hypoel_out):
+def write_traveltime_file(hypoel_out, filename):
     with open(hypoel_out, 'r') as f:
         a = f.readlines()
     
@@ -38,7 +38,7 @@ def write_traveltime_file(hypoel_out):
                 df = df.loc[:, ~df.columns.duplicated()]
 
         tt_list = []
-        with open('traveltime.dat', 'a') as g:
+        with open(filename, 'a') as g:
             for idx2, k in df.iterrows():
                 if 'P' in str(k['pha']):
                     tt_list.append((k['stn'], float(k['ain']), 1.0, 'P'))
