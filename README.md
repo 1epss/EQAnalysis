@@ -1,6 +1,7 @@
 # EQAnalysis
 
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
+![Supported Python versions](https://img.shields.io/badge/python-3.11-blue)
 
 ## Description
 **EQAnalysis** is focused on analyzing earthquakes using programming languages such as Python and related seismic analysis programs. It includes processes such as creating input files required for program execution and visualizing the earthquake analysis procedures. The goal is to help beginners understand earthquake analysis and to assist researchers, engineers, and geophysicists in their work.
@@ -22,15 +23,15 @@
 You can simply use it by entering the following command in your terminal.
 
 ```bash
-python test.py
+python ./src/main.py
 ```
 
 ## Requirements
-List of dependencies or prerequisites to run the project:
+This project supports Python 3.11. Please install the following versions of key dependencies:
+   
+    numpy == 1.19.5
+    pandas == 1.3.5 
 
-    Python 3.11 
-
-This project has been confirmed to work correctly with Python 3.11.
 
 ## Contributing
 Contributions are welcome! Follow these steps:
