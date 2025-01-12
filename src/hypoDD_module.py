@@ -70,8 +70,3 @@ def write_phase_file(event, traveltime, filename):
                     break
                 f.write(nobs_line)         
     return f
-
-
-#write_station_file(instrument = './korea_instrument_2024_Ahn.csv', filename = 'station.dat')
-#write_traveltime_file(hypoel = 'kimetalhypoel.out')
-#write_phase_file(event = './event.csv', traveltime = 'traveltime.dat', filename = 'phase.dat')
