@@ -5,7 +5,7 @@ import os
 
 # Write station.dat for ph2dt
 def write_station_file(instrument, filename):
-    csv = pd.read_csv(instrument)
+    csv = pd.read_csv(instrument).drop_duplicates(subset=['NET', 'STA'], keep='last').sort_values(by=['STA'])
     with open(filename, 'a') as f:
         for idx, i in csv.iterrows():
             line = "{:s} {:.4f} {:.4f}\n".format(i['STA'], i['LAT'], i['LON']) 
@@ -41,12 +41,13 @@ def write_traveltime_file(hypoel_out, filename):
         with open(filename, 'a') as g:
             for idx2, k in df.iterrows():
                 if 'P' in str(k['pha']):
-                    tt_list.append((k['stn'], float(k['ain']), 1.0, 'P'))
+                    tt_list.append((k['stn'].upper(), float(k['ain']), 1.0, 'P'))
                 if 'S' in str(k['remk']):  
-                    tt_list.append((k['stn'], float(k['dist']), 1.0, 'S'))    
+                    tt_list.append((k['stn'].upper(), float(k['dist']), 1.0, 'S'))    
 
                 nobs_line = "{:<7s} {:>7.3f} {:>.0f} {:s}\n".format(tt_list[-1][0], tt_list[-1][1], tt_list[-1][2], tt_list[-1][3]) 
                 g.write(nobs_line)
+            g.write("\n")
     return g
 
 
@@ -60,7 +61,7 @@ def write_phase_file(event, traveltime, filename):
             
         blank_line = 0
         for idx, i in csv.iterrows():
-            travel_line = "{:.0f} {:.0f} {:.0f} {:.0f} {:.0f} {:.2f} {:.4f} {:.4f} {:.2f} {:.2f} {:.2f} {:.2f} {:.2f} {:d}\n".format(
+            travel_line = "# {:.0f} {:.0f} {:.0f} {:.0f} {:.0f} {:.2f} {:.4f} {:.4f} {:.2f} {:.2f} {:.2f} {:.2f} {:.2f} {:d}\n".format(
                 i['YR'], i['MO'], i['DY'], i['HR'], i['MI'], i['SC'], i['LAT'], i['LON'], i['DEP'], i['MAG'], i['EH1'], i['EZ'], i['RMS'], idx + 1) 
             f.write(travel_line)
             

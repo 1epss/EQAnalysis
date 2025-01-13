@@ -25,7 +25,7 @@ def main():
         hypoel_out = input("Enter the path to the hypoel.out file: ").strip()
         filename = input("Enter the output filename: ").strip()
         write_traveltime_file(hypoel_out, filename)
-        print("traveltime file created successfully as '{filename}'.")
+        print(f"traveltime file created successfully as '{filename}'.")
 
     elif module_name == "write_phase_file":
         event = input("Enter the path to the event CSV file: ").strip()
