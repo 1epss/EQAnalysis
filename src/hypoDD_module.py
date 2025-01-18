@@ -1,3 +1,4 @@
+from obspy import *
 import numpy as np
 import pandas as pd
 import os
@@ -71,3 +72,74 @@ def write_phase_file(event, traveltime, filename):
                     break
                 f.write(nobs_line)         
     return f
+
+
+# Compute Cross-correlation and write cc.dat for hypoDD
+def write_cc_file(event_directory, station, filename, phase, btime, channel_list, resampling_rate, freqmin, freqmax, minsec, maxsec, threshold):
+    
+    # Input station.dat from write_station_file module
+    station_list = pd.read_csv(station, sep='\s+', header = None)
+    station_list.columns = ['STATION', 'LATITUDE', "LONGITUDE"]
+    # Input event_directory
+    event_list = sorted([event for event in os.listdir(event_directory)])
+    acc = channel_list[0][-1]
+
+    # Compute cross-correlation between two different events
+    for idx, event in enumerate(event_list):
+        for idx2, event2 in enumerate(event_list):
+            if idx2 == idx:
+                continue
+            
+            with open(filename, 'a') as f:
+                otc = 0.0
+                header_line = "# {:d} {:d} {:.1f}\n".format(idx + 1, idx2 + 1, otc) 
+                f.write(header_line)
+                
+                for station in station_list['STATION']:
+                    for channel in channel_list[0]:
+
+                        try:
+                            slave = read(f'{event_directory}/{event}/{station}.KS.{channel}.sac')
+                            master = read(f'{event_directory}/{event2}/{station}.KS.{channel}.sac')
+
+                            if channel == acc and os.path.exists(os.path.join(f'{event_directory}/{event}', f'{station}.KS.HHZ.sac')):
+                                continue
+
+                            if channel == acc and os.path.exists(os.path.join(f'{event_directory}/{event}', f'{station}.KS.ELZ.sac')):
+                                continue
+
+                            slave = slave.resample(resampling_rate)
+                            master = master.resample(resampling_rate)
+
+                            slave = slave.filter('bandpass', freqmin = freqmin, freqmax = freqmax)
+                            master = master.filter('bandpass', freqmin = freqmin, freqmax = freqmax)
+
+                            if phase == 'P':
+                                time_slave = UTCDateTime(slave[0].stats.starttime + btime + slave[0].stats.sac.a) 
+                                time_master = UTCDateTime(master[0].stats.starttime + btime + master[0].stats.sac.a)
+                            elif phase == 'S':
+                                time_slave = UTCDateTime(slave[0].stats.starttime + 5 + slave[0].stats.sac.t0)
+                                time_master = UTCDateTime(master[0].stats.starttime + 5 + master[0].stats.sac.t0)
+
+                            wave_slave = slave[0].slice(time_slave - minsec, time_slave + maxsec).data
+                            wave_master = master[0].slice(time_master - minsec, time_master + maxsec).data
+
+                            #numerator / denominator = np.corrcoef
+                            numerator = np.sum(wave_slave * wave_master)
+                            denominator = np.sqrt(np.sum(wave_slave ** 2) * np.sum(wave_master ** 2))
+
+                            corr = np.correlate(wave_slave, wave_master, 'full') / denominator
+                            maxcorr = round(max(corr) ** 2, 3) 
+                            lag = np.where(corr == max(corr))
+                            # if 100Hz waveform : btime * 100
+                            lag_time = (lag[0][0] - btime * 100) / resampling_rate
+                            
+                            if phase == 'P':
+                                obs_line = "{:s} {:.3f} {:.3f} P\n".format(station, lag_time, maxcorr) 
+                            elif phase == 'S':
+                                obs_line = "{:s} {:.3f} {:.3f} S\n".format(station, lag_time, maxcorr)
+                            if maxcorr >= threshold:
+                                f.write(obs_line)
+
+                        except:
+                            continue
