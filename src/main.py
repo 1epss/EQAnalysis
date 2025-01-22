@@ -1,41 +1,80 @@
 # src/main.py
 
 # Import all modules from *_module.py
+from hash_module import *
 from hypoDD_module import *
 
 def main():
+    print("For running Hash, these modules are available:")
+    print("========================================")
+    print("1. hash_write_station")
+    print("2. hash_write_saclst")
+    print("3. hash_write_phase")
+    print("4. hash_write_amp")
+    print("========================================")
     print("========================================")
     print("For running HypoDD, these modules are available:")
     print("========================================")
-    print("1. write_station_file")
-    print("2. write_traveltime_file")
-    print("3. write_phase_file")
-    print("4. write_cc_file")
+    print("1. hypoDD_write_station")
+    print("2. hypoDD_write_traveltime")
+    print("3. hypoDD_write_phase")
+    print("4. hypoDD_write_cc")
     print("========================================")
 
     # Get the module name from the user
     module_name = input("Enter the module name to execute (e.g., write_station_file): ").strip()
     
-    if module_name == "write_station_file":
+    if module_name == "hash_write_station":
         instrument = input("Enter the path to the instrument CSV file: ").strip()
         filename = input("Enter the output filename: ").strip()
-        write_station_file(instrument, filename)
+        hash_write_station(instrument, filename)
         print(f"station file created successfully as '{filename}'.")
 
-    elif module_name == "write_traveltime_file":
+    elif module_name == "hash_write_saclst":
+        event_directory = input("Enter the path to the event_directory: ").strip()
+        filename = input("Enter the output filename: ").strip()
+        hash_write_saclst(event_directory, filename)
+        print(f"station file created successfully as '{filename}'.")
+
+    elif module_name == "hash_write_phase":
+        event_csv = input("Enter the path to the event CSV file: ").strip()
+        saclst_file = input("Enter the path to the saclst file: ").strip()
+        event_directory = input("Enter the path to the event_directory: ").strip()
+        filename = input("Enter the output filename: ").strip()
+        hash_write_phase(event_csv, saclst_file, event_directory, filename)
+        print(f"station file created successfully as '{filename}'.")
+
+    elif module_name == "hash_write_amp":
+        event_csv = input("Enter the path to the event CSV file: ").strip()
+        saclst_file = input("Enter the path to the saclst file: ").strip()
+        event_directory = input("Enter the path to the event_directory: ").strip()
+        filename = input("Enter the output filename: ").strip()
+        method = input("Enter the method: ")
+        hash_write_amp(event_csv, saclst_file, event_directory, filename, method)
+        print(f"station file created successfully as '{filename}'.")
+
+    #==============================================================================
+
+    elif module_name == "hypoDD_write_station":
+        instrument = input("Enter the path to the instrument CSV file: ").strip()
+        filename = input("Enter the output filename: ").strip()
+        hypoDD_write_station(instrument, filename)
+        print(f"station file created successfully as '{filename}'.")
+
+    elif module_name == "hypoDD_write_traveltime":
         hypoel_out = input("Enter the path to the hypoel.out file: ").strip()
         filename = input("Enter the output filename: ").strip()
-        write_traveltime_file(hypoel_out, filename)
+        hypoDD_write_traveltime(hypoel_out, filename)
         print(f"traveltime file created successfully as '{filename}'.")
 
-    elif module_name == "write_phase_file":
-        event = input("Enter the path to the event CSV file: ").strip()
+    elif module_name == "hypoDD_write_phase":
+        event_csv = input("Enter the path to the event CSV file: ").strip()
         traveltime = input("Enter the path to the traveltime file: ").strip()
         filename = input("Enter the output filename: ").strip()
-        write_phase_file(event, traveltime, filename)
+        hypoDD_write_phase(event_csv, traveltime, filename)
         print(f"phase file created successfully as '{filename}'.")
     
-    elif module_name == "write_cc_file":
+    elif module_name == "hypoDD_write_cc":
         event_directory = input("Enter the path to the event_directory: ").strip()
         station = input("Enter the path to the station file: ").strip()
         phase = input("Enter the specific phase to be computed: ").strip()
@@ -70,7 +109,7 @@ def main():
             maxsec = 0.4
         else:
             maxsec = float(maxsec)
-        write_cc_file(event_directory, station, filename, phase, btime, channel_list, resampling_rate, freqmin, freqmax, minsec, maxsec, threshold)
+        hypoDD_write_cc(event_directory, station, filename, phase, btime, channel_list, resampling_rate, freqmin, freqmax, minsec, maxsec, threshold)
         print(f"cc file created successfully as '{filename}'.")
 
     else:

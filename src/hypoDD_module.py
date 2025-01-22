@@ -5,7 +5,7 @@ import os
 
 
 # Write station.dat for ph2dt
-def write_station_file(instrument, filename):
+def hypoDD_write_station(instrument, filename):
     csv = pd.read_csv(instrument).drop_duplicates(subset=['NET', 'STA'], keep='last').sort_values(by=['STA'])
     with open(filename, 'a') as f:
         for idx, i in csv.iterrows():
@@ -15,7 +15,7 @@ def write_station_file(instrument, filename):
 
 
 # Write traveltime.dat from hypoel.out
-def write_traveltime_file(hypoel_out, filename):
+def hypoDD_write_traveltime(hypoel_out, filename):
     with open(hypoel_out, 'r') as f:
         a = f.readlines()
     
@@ -53,8 +53,8 @@ def write_traveltime_file(hypoel_out, filename):
 
 
 # Write phase.dat for ph2dt
-def write_phase_file(event, traveltime, filename):
-    csv = pd.read_csv(event)
+def hypoDD_write_phase(event_csv, traveltime, filename):
+    csv = pd.read_csv(event_csv)
 
     with open(filename, 'a') as f:
         with open(traveltime, "r") as g:
@@ -75,7 +75,7 @@ def write_phase_file(event, traveltime, filename):
 
 
 # Compute Cross-correlation and write cc.dat for hypoDD
-def write_cc_file(event_directory, station, filename, phase, btime, channel_list, resampling_rate, freqmin, freqmax, minsec, maxsec, threshold):
+def hypoDD_write_cc(event_directory, station, filename, phase, btime, channel_list, resampling_rate, freqmin, freqmax, minsec, maxsec, threshold):
     
     # Input station.dat from write_station_file module
     station_list = pd.read_csv(station, sep='\s+', header = None)
