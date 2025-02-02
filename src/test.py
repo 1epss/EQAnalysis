@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from obspy import *
+import pygmt
 import os
 import warnings
 warnings.filterwarnings(action='ignore')
@@ -260,4 +261,106 @@ def plot_local_magnitude(inventory, event_directory, mindist = 30.0):
         plt.legend(loc = 'best')
         plt.show()
 
-plot_local_magnitude(inventory = '../include/KS_KG_metadata_1.0.1.xml', event_directory = '../../event')
+def hash_map_beachball_pygmt(hash_output, region_interest, figtitle, filename):
+    if not os.path.exists(hash_output):
+        raise FileNotFoundError(f"The specified file {hash_output} does not exist.")
+
+    grid = pygmt.datasets.load_earth_relief(resolution="03s", region=region_interest)
+    dgrid = pygmt.grdgradient(grid=grid, radiance=[270, 30])
+
+    fig = pygmt.Figure()
+    pygmt.config(FORMAT_GEO_MAP="ddd.xx", MAP_FRAME_TYPE="plain")
+    pygmt.makecpt(cmap="gray", series=[-1.5, 0.3, 0.01])
+    fig.grdimage(grid=dgrid, projection="M12c", frame=[f"lNWest+t{figtitle}", "xa0.01", "ya0.01"], cmap=True)
+
+    columns = [
+        "Event_number", "Year", "Month", "Day", "Hour", "Minute", "Second", "Event_type", "Magnitude", "Magnitude_type", "Latitude", "Longitude", "Depth", "Location_quality", "RMS", "Horizontal_error", "Depth_error", "Origin_time_error", "Number_of_picks", "Number_of_P_picks", "Number_of_S_picks", "Strike", "Dip", "Rake", "Fault_plane_uncertainty", "Auxiliary_plane_uncertainty", "Number_of_P_first_motion_polarities", "Weighted_percent_misfit_of_first_motions", "Quality", "Probability_mechanism", "Station_distribution_ratio", "Number_of_S/P_ratios", "Average_log10(S/P)_ratio", "Multiple_flag"
+    ]
+    try:
+        csv = pd.read_csv(hash_output, sep='\s+', names=columns).drop_duplicates(subset=['Event_number']).reset_index(drop=True)
+    except Exception as e:
+        raise ValueError(f"Error reading CSV file: {e}")
+
+    x_frame = [127.51, 127.51, 127.51, 127.51, 127.52, 127.53, 127.54, 127.54, 127.54, 127.54, 127.53, 127.52, 127.52]
+    y_frame = [35.82, 35.81, 35.80, 35.79, 35.79, 35.79, 35.79, 35.80, 35.81, 35.82, 35.82, 35.82, 35.81]
+
+    for idx, row in csv.iterrows():
+        x, y = [row['Longitude']], [row['Latitude']]
+        fig.plot(x=x, y=y, style="c0.19c", fill="green3", pen="0.04p")
+        fig.meca(
+            spec=np.array([x_frame[idx], y_frame[idx], row['Depth'], row['Strike'], row['Dip'], row['Rake'], row['Magnitude']]),
+            scale="1.5c+m", convention="aki", event_name=row['Event_number']
+        )
+        fig.plot(x=[row['Longitude'], x_frame[idx]], y=[row['Latitude'], y_frame[idx]], pen="0.5p,red,-")
+
+    fig.shift_origin(xshift=12.4)
+    fig.basemap(region=[6.2, 7.0, 35.785, 35.825], projection="X6c/14.7c", frame=["lESNwt", "xa0.1", "ya0.01"])
+    for _, row in csv.iterrows():
+        fig.plot(x=[row['Depth']], y=[row['Latitude']], style="c0.19c", fill="green3", pen="0.04p")
+
+    fig.shift_origin(xshift=-12.4, yshift=-5.8)
+    fig.basemap(region=[127.505, 127.545, 6.2, 7.0], projection="X12c/-5.5c", frame=["lESWnt", "xa0.01", "ya0.1f+5Depth(km)"])
+    for _, row in csv.iterrows():
+        fig.plot(x=[row['Longitude']], y=[row['Depth']], style="c0.19c", fill="green3", pen="0.04p")
+
+    output_filename = f'{filename}.png'
+    fig.savefig(output_filename)
+    print(f"Figure saved as {output_filename}")
+
+
+# Project beachball diagrams onto a map using Folium
+def hash_map_beachball_folium(hash_output, output_dir):
+    
+    df_KS_station = pd.read_csv('station.txt', sep = ' ', header = None)
+    df_KS_station.columns = ['NETWORK', 'STATION', 'LATITUDE', 'LONGITUDE', 'ELEVATION']
+    center = [35.8034 ,127.5311]
+
+    m = folium.Map(width=900, height=900, location=center, zoom_start=16, control_scale = True, 
+                   tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                   attr='Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                   name='Esri World Imagery')
+
+    event = pd.read_csv('event.csv')
+    image_list = os.listdir('./image')
+
+    for i in range(1, 14):
+        image = './image/' + str(i) + '.png'
+
+        if not os.path.isfile(image):
+            print(f"Could not find {image}")
+
+        else:
+            img = folium.raster_layers.ImageOverlay(
+                name="Mercator projection SW",
+                image=image,
+                bounds=[[event.iloc[i - 1][1]-0.0005, event.iloc[i - 1][2]-0.0005], 
+                        [event.iloc[i - 1][1]+0.0005, event.iloc[i - 1][2]+0.0005]],
+                opacity=0.6,
+                interactive=True,
+                cross_origin=False,
+                zindex=1).add_to(m)
+
+        icon_circle = BeautifyIcon(icon='circle', inner_icon_style='color:red;font-size:5px;', background_color='transparent', border_color='transparent')
+        folium.map.Marker((event.iloc[i - 1][1],event.iloc[i - 1][2]), tooltip = f'{i}', icon=folium.features.DivIcon(icon_size=(0,0),icon_anchor=(0,0),html=f'<div style="font-size: 8pt; color: {"white"}">{i}</div>')).add_to(m)  
+
+
+    for idx, row in df_KS_station.iterrows() :
+        folium.features.RegularPolygonMarker(location=(row.LATITUDE, row.LONGITUDE), tooltip = f'station:{row.STATION}<br/>Network:{row.NETWORK}<br/>Location:{row.LATITUDE:.4f},{row.LONGITUDE:.4f}', 
+                                             color='yellow', fill_color='green',number_of_sides=6, rotation=30, radius=5, fill_opacity=1).add_to(m)
+        folium.map.Marker((row.LATITUDE,row.LONGITUDE), icon=folium.features.DivIcon(icon_size=(0,0),icon_anchor=(0,-20),html=f'<div style="font-size: 8pt; color: {"white"}">{row.STATION}</div>')).add_to(m)
+
+
+
+    folium.Circle(location=center, color='black', fill_opacity=0, radius=50*1e+3, label = '50km').add_to(m)
+    folium.Circle(location=center, color='black', fill_opacity=0, radius=100*1e+3, label = '100km').add_to(m)
+
+    plugins.Fullscreen(
+    position='topright',
+    title='Expand me',
+    title_cancel='Exit me',
+    force_separate_button=True ).add_to(m)    
+    # 지도를 HTML 파일로 저장
+    m.save('jangsu_focalmechanism.html')
+    
+#plot_local_magnitude(inventory = '../include/KS_KG_metadata_1.0.1.xml', event_directory = '../../event')
+#hash_map_beachball_pygmt(hash_output='../include/hash.output', region_interest=[127.505, 127.545, 35.785, 35.825], figtitle='Jangsu Earthquake Map', filename='hash')

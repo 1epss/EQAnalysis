@@ -1,8 +1,10 @@
 from obspy import *
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import os
-
+import folium
+from folium.plugins import BeautifyIcon
 
 # Write station.dat for ph2dt
 def hypoDD_write_station(instrument, filename):
