@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 from obspy import *
 from obspy.imaging.beachball import beachball
-import folium
-from folium.plugins import BeautifyIcon
 import pygmt
 import os
 import re
@@ -358,69 +356,3 @@ def hash_draw_beachball_pygmt(hypoel_arc, amp, hash_output, output_dir, event_nu
             fig.savefig(f'{output_dir}/{event_num}(2).png')
         else :
             fig.savefig(f'{output_dir}/{event_num}.png')
-
-
-# Project beachball diagrams onto a map using Folium
-def hash_map_beachball_folium(hash_output, output_dir):
-    '''
-    df_KS_station = pd.read_csv('station.txt', sep = ' ', header = None)
-    df_KS_station.columns = ['NETWORK', 'STATION', 'LATITUDE', 'LONGITUDE', 'ELEVATION']
-
-
-
-
-    # 지도 생성 (중심 좌표 설정)
-    center = [35.8034 ,127.5311]
-
-    #m = folium.Map(width=900, height=900, location=center, zoom_start=10, control_scale = True, tiles="cartodbpositron")
-    #m = folium.Map(width=900, height=900, location=center, zoom_start=10, control_scale = True, tiles="cartodbdark_matter") 
-
-    m = folium.Map(width=900, height=900, location=center, zoom_start=16, control_scale = True, 
-                   tiles='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-                   attr='Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-                   name='Esri World Imagery')
-
-    event = pd.read_csv('event.csv')
-    image_list = os.listdir('./image')
-
-    for i in range(1, 14):
-        image = './image/' + str(i) + '.png'
-
-        if not os.path.isfile(image):
-            print(f"Could not find {image}")
-
-        else:
-            img = folium.raster_layers.ImageOverlay(
-                name="Mercator projection SW",
-                image=image,
-                bounds=[[event.iloc[i - 1][1]-0.0005, event.iloc[i - 1][2]-0.0005], 
-                        [event.iloc[i - 1][1]+0.0005, event.iloc[i - 1][2]+0.0005]],
-                opacity=0.6,
-                interactive=True,
-                cross_origin=False,
-                zindex=1).add_to(m)
-
-        icon_circle = BeautifyIcon(icon='circle', inner_icon_style='color:red;font-size:5px;', background_color='transparent', border_color='transparent')
-        folium.map.Marker((event.iloc[i - 1][1],event.iloc[i - 1][2]), tooltip = f'{i}', icon=folium.features.DivIcon(icon_size=(0,0),icon_anchor=(0,0),html=f'<div style="font-size: 8pt; color: {"white"}">{i}</div>')).add_to(m)  
-
-
-    for idx, row in df_KS_station.iterrows() :
-        folium.features.RegularPolygonMarker(location=(row.LATITUDE, row.LONGITUDE), tooltip = f'station:{row.STATION}<br/>Network:{row.NETWORK}<br/>Location:{row.LATITUDE:.4f},{row.LONGITUDE:.4f}', 
-                                             color='yellow', fill_color='green',number_of_sides=6, rotation=30, radius=5, fill_opacity=1).add_to(m)
-        folium.map.Marker((row.LATITUDE,row.LONGITUDE), icon=folium.features.DivIcon(icon_size=(0,0),icon_anchor=(0,-20),html=f'<div style="font-size: 8pt; color: {"white"}">{row.STATION}</div>')).add_to(m)
-
-
-
-    folium.Circle(location=center, color='black', fill_opacity=0, radius=50*1e+3, label = '50km').add_to(m)
-    folium.Circle(location=center, color='black', fill_opacity=0, radius=100*1e+3, label = '100km').add_to(m)
-
-    plugins.Fullscreen(
-    position='topright',
-    title='Expand me',
-    title_cancel='Exit me',
-    force_separate_button=True ).add_to(m)    
-
-    m
-    # 지도를 HTML 파일로 저장
-    m.save('jangsu_focalmechanism.html')
-    '''

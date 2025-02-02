@@ -1,21 +1,18 @@
-import pandas as pd
 import numpy as np
-from obspy import *
+import pandas as pd
 import matplotlib.pyplot as plt
+from obspy import *
 import os
 import warnings
 warnings.filterwarnings(action='ignore')
 
 # Plot seismic phases per stations    
 def plot_phase(instrument, event_directory, channel, method = 'both'):
-    
     # Get all available stations from instrument file
     instrument = pd.read_csv(instrument)
     station_list = instrument['STA'].unique() 
-
     # Make sure there's no addional directory in event_directory
     event_list = sorted([event for event in os.listdir(event_directory)])
-
     # Compare the station list in the station_file with SAC files in the event_directory and extract distances only for matching files
     for station in station_list:
         matched_list = [os.path.join(event_directory, event, f'{station}.KS.{channel}.sac') for event in event_list if os.path.isfile(os.path.join(event_directory, event, f'{station}.KS.{channel}.sac'))]
@@ -184,7 +181,83 @@ def write_header_file(event_directory, hypoel_arc, filename):
     data['HYPODEPTH'] = np.sqrt(data['DIST']**2 + data['DEPTH']**2)
     data.to_csv(filename)
     
-    return data, hypoel
-
 #plot_phase(instrument = 'korea_instrument_2024_Ahn.csv', event_directory = '../cc_final/', channel = 'HHZ', method = 'both')
-#d, f = write_header_file(event_directory = './cc_final', hypoel_arc = './hypoel.arc', filename = 'ok.csv')
+#write_header_file(event_directory = '../../event', hypoel_arc = '../include/hypoel.arc', filename = 'ok.csv')
+
+#========================================================================================================================================================================================================================
+
+def calc_local_magnitude(st, inv, pre_filt = [0.005, 0.006, 8.0, 10.0]):
+    st = read(st)
+    tr = st[0]
+    station, dist = tr.stats.station, tr.stats.sac.dist
+    st_rmrs = st.remove_response(inventory=inv, output='DISP', pre_filt = pre_filt, plot = False)
+    # simulation with Wood-Anderson seismometer 
+    paz_wa = {'sensitivity' : 2080, 'gain' : 1, 'zeros' : [0j, 0j], 'poles' : [-5.498 - 5.609j, -5.498 + 5.609j]}
+    st_wa = st_rmrs.simulate(paz_remove=None, paz_simulate = paz_wa, water_level = 100)
+    tr_wa = st_wa[0]
+    data = tr_wa.data
+    peak_amp = np.max(abs(data))     # Zero-to-peak method
+    mag_L = np.log10(peak_amp * 1000) + 0.5107 * np.log10(dist / 100) + 0.001699 * (dist - 100) + 3  # Sheen et al., 2018
+    return station, dist, mag_L
+
+def plot_local_magnitude(inventory, event_directory, mindist = 30.0): 
+    inv = read_inventory(inventory)
+    for _, event in enumerate(sorted(os.listdir(event_directory))):
+        sta = []
+        dist = []
+        magL = []
+        for stream in os.listdir(os.path.join(event_directory, str(event))):
+            if 'HHZ' in stream or 'ELZ' in stream:
+                try:
+                    station, distance, mag_L = calc_local_magnitude(st = os.path.join(event_directory, str(event), stream), inv = inv, pre_filt = [0.005, 0.006, 40.0, 45.0])
+                    if mindist < float(distance):
+                        sta.append(station)
+                        dist.append(float(distance))
+                        magL.append(mag_L)
+                except:
+                    print(stream)
+                    continue
+        org_mean = np.mean(magL)
+        #print('org_mean : ', org_mean) # 절삭평균 적용 전 평균
+        # =====================절삭평균=====================
+        test = magL
+        while True:
+            mean = np.mean(test)
+            initial_len = len(test)
+            #print(f'initial_len : {initial_len}')
+            # 기준 범위를 벗어나는 데이터 절삭
+            for i in test:
+                if mean - i > 0.5 or i - mean > 0.5:
+                    test.remove(i)
+            final_len = len(test)
+            #print(f'final_len : {final_len}')       
+            if initial_len == final_len:
+                break
+        trimmed_mean = np.mean(test)
+        std = np.std(test)
+        print(f'Trimmed mean : {trimmed_mean:.2f} ± {std:.2f}')
+        # ===============================================
+        dist, magL = zip(*sorted(zip(dist, magL)))
+        #print(dist) 관측소 별 거리-규모
+        #print(magL)
+        
+        plt.figure(figsize = (8,5))
+        plt.axhline(org_mean, color = 'b', label = 'Calculated $M_L$')
+        plt.axhline(trimmed_mean, color = 'y', label = 'Trimmed $M_L$')
+        plt.axhline(trimmed_mean + std, color = 'y', linestyle = '--')
+        plt.axhline(trimmed_mean - std, color = 'y', linestyle = '--')
+        plt.scatter(dist, magL, label = 'KMA')
+        plt.xticks(fontsize = 12)
+        plt.yticks(fontsize = 12)
+        plt.xlabel('Distance (Km)', fontsize = 15)
+        plt.ylabel('magnitude ($M_L$)', fontsize = 15)
+        plt.xscale('log')
+        plt.xlim(0.0)
+        plt.ylim(trimmed_mean - 1.0, trimmed_mean + 1.0)
+        plt.suptitle(f'Magnitude (Vertical, Zero-to-peak)', fontsize = 20)
+        plt.title(f'Origin time : {event} (KST2)', fontsize = 13)
+        plt.text(50, trimmed_mean + 0.05, f'Trimmed $M_L$: {trimmed_mean:.2f} ± {std:.2f}', color='black', fontsize=12)
+        plt.legend(loc = 'best')
+        plt.show()
+
+plot_local_magnitude(inventory = '../include/KS_KG_metadata_1.0.1.xml', event_directory = '../../event')
