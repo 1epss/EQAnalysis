@@ -12,7 +12,17 @@ def degree_to_dms(deg):
     minute = int((deg - degree) * 60)
     second = (deg - degree - minute/60) * 3600
     second = int(round(second, 0))
+    if degree < 10:
+        degree = f'0{degree}'
+    if minute < 10:
+        minute = f'0{minute}'
+    if second < 10:
+        second = f'0{second}'
+    degree = str(degree)
+    minute = str(minute)
+    second = str(second)
     return degree, minute, second
+
 
 # Function for hash_draw_beachball
 def normalize(series, new_min=0.25, new_max=0.5):
@@ -28,7 +38,9 @@ def hash_write_station(instrument, filename):
     csv['ELEV'] = csv['ELEV'].astype(int)
     with open(filename, 'a') as f:
         for _, row in csv.iterrows():
-            if len(row['STA']) != 5:
+            if not row['CHANNEL'].endswith('Z'):
+                continue
+            if len(row['STA']) < 5:
                 line = "{:<4s}{:>4s}{:>42.5f}{:>11.5f}{:>6d}{:>25}\n".format(row['STA'], row['CHANNEL'], row['LAT'], row['LON'], row['ELEV'], row['NET'])
                 f.write(line)
     with open(filename, 'r') as f:
@@ -36,7 +48,11 @@ def hash_write_station(instrument, filename):
     unique_lines = list(dict.fromkeys(lines))
     sort_lines = sorted(unique_lines)
     with open(filename, 'w') as f:
-        f.writelines(sort_lines)
+        for i, line in enumerate(sort_lines):
+            if i < len(sort_lines) - 1:
+                f.write(line)
+            else:
+                f.write(line.rstrip('\n'))    
     return f
 
 
@@ -81,7 +97,7 @@ def hash_write_phase(event_csv, saclst_file, event_directory, filename):
             lat1, lat2, lat3 = degree_to_dms(event.LAT)
             lon1, lon2, lon3 = degree_to_dms(event.LON)
             depth, hor_uncer, ver_uncer, mag = event.DEP, event.EH1, event.EZ, event.MAG
-            event_line = "{:<17s}{:<2d}N{:<2d}.{:<2d}{:<3d}E{:<2d}.{:<2d} {:>.2f}{:>54.2f}{:>6.2f}{:>44.2f}{:>22d}\n".format(org_format, lat1, lat2, lat3, lon1, lon2, lon3, depth, hor_uncer, ver_uncer, mag, event_num)
+            event_line = "{:<17s}{:<2s}N{:<2s}.{:<2s}{:<3s}E{:<2s}.{:<2s} {:>.2f}{:>54.2f}{:>6.2f}{:>44.2f}{:>22d}\n".format(org_format, lat1, lat2, lat3, lon1, lon2, lon3, depth, hor_uncer, ver_uncer, mag, event_num)
             f.write(event_line)
 
             sections = []
