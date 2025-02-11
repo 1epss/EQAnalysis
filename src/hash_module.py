@@ -151,7 +151,7 @@ def hash_write_amp(event_csv, saclst_file, event_directory, filename, method = '
         event_num = 100001
         for idx, row in csv.iterrows():
             org = UTCDateTime(int(row.YR), int(row.MO), int(row.DY), int(row.HR), int(row.MI), float(row.SC))
-            observed_num = len(sections[idx])
+            observed_num = len(sections[idx]) - 1
             event_line = "{:<6d}{:>24d}\n".format(event_num, observed_num)
             f.write(event_line)
             for idx2, i in sections[idx].iterrows():
@@ -164,10 +164,9 @@ def hash_write_amp(event_csv, saclst_file, event_directory, filename, method = '
                     try:
                         a = int(np.round(org + st[0].stats.sac.a - starttime, 2) * 100)
                         t0 = int(np.round(org + st[0].stats.sac.t0 - starttime, 2) * 100)
-                        a_amp = max(abs(st[0].data[a - 30 : a + 30]))
-                        t0_amp = max(abs(st[0].data[t0 - 30 : t0 + 30]))
-                        a_noise_amp = st[0].data[a - 20]
-                        t0_noise_amp = st[0].data[t0 - 20] 
+                        a_amp = max(abs(st[0].data[a - 50 : a + 150]))
+                        t0_amp = max(abs(st[0].data[t0 - 50 : t0 + 150]))
+                        a_noise_amp = st[0].data[a - 250 : a - 50]
                         amplitude_line = "{:<4s}{:>4s}{:>3s}{:>27.3f}{:>11.3f}{:>11.3f}{:>11.3f}\n".format(sta, chan, net, a_noise_amp, a_noise_amp, a_amp, t0_amp)   
                         f.write(amplitude_line)
                     except:
@@ -179,22 +178,32 @@ def hash_write_amp(event_csv, saclst_file, event_directory, filename, method = '
                     try:
                         a = int(np.round(org + st[0].stats.sac.a - starttime, 2) * 100)
                         t0 = int(np.round(org + st[0].stats.sac.t0 - starttime, 2) * 100)
-                        a_amp1 = max(abs(st[0].data[a - 30 : a + 30]))
-                        a_amp2 = max(abs(st2[0].data[a - 30 : a + 30]))
-                        a_amp3 = max(abs(st3[0].data[a - 30 : a + 30]))
-                        a_amp = np.sqrt(a_amp1 ** 2 + a_amp2 ** 2 + a_amp3 ** 2)
-                        t0_amp1 = max(abs(st[0].data[t0 - 30 : t0 + 30]))
-                        t0_amp2 = max(abs(st2[0].data[t0 - 30 : t0 + 30]))
-                        t0_amp3 = max(abs(st3[0].data[t0 - 30 : t0 + 30]))
-                        t0_amp = np.sqrt(t0_amp1 ** 2 + t0_amp2 ** 2 + t0_amp3 ** 2)
-                        a_noise_amp1 = np.median(st[0].data[a - 20 : a - 1])
-                        a_noise_amp2 = np.median(st2[0].data[a - 20: a - 1])
-                        a_noise_amp3 = np.median(st3[0].data[a - 20: a - 1])
-                        a_noise_amp = np.sqrt(a_noise_amp1 ** 2 + a_noise_amp2 ** 2 + a_noise_amp3 ** 2)
-                        t0_noise_amp1 = np.median(st[0].data[t0 - 20 : t0 - 1]) 
-                        t0_noise_amp2 = np.median(st2[0].data[t0 - 20 : t0 - 1]) 
-                        t0_noise_amp3 = np.median(st3[0].data[t0 - 20 : t0 - 1]) 
-                        t0_noise_amp = np.sqrt(t0_noise_amp1 ** 2 + t0_noise_amp2 ** 2 + t0_noise_amp3 ** 2)
+                        if t0 - a < 200:
+                            a_amp1 = max(st[0].data[a - 20 : a + 50]) - min(st[0].data[a - 20 : a + 50])
+                            a_amp2 = max(st2[0].data[a - 20 : a + 50]) - min(st2[0].data[a - 20 : a + 50])
+                            a_amp3 = max(st3[0].data[a - 20 : a + 50]) - min(st3[0].data[a - 20 : a + 50])
+                            a_amp = np.sqrt(a_amp1 ** 2 + a_amp2 ** 2 + a_amp3 ** 2)
+                            t0_amp1 = max(st[0].data[t0 - 20 : t0 + 100]) - min(st[0].data[t0 - 20 : t0 + 100])
+                            t0_amp2 = max(st2[0].data[t0 - 20 : t0 + 100]) - min(st2[0].data[t0 - 20 : t0 + 100])
+                            t0_amp3 = max(st3[0].data[t0 - 20 : t0 + 100]) - min(st3[0].data[t0 - 20 : t0 + 100])
+                            t0_amp = np.sqrt(t0_amp1 ** 2 + t0_amp2 ** 2 + t0_amp3 ** 2)
+                            a_noise_amp1 = max(st[0].data[a - 90 : a - 20]) - min(st[0].data[a - 90 : a - 20])
+                            a_noise_amp2 = max(st2[0].data[a - 90: a - 20]) - min(st2[0].data[a - 90 : a - 20])
+                            a_noise_amp3 = max(st3[0].data[a - 90: a - 20]) - min(st3[0].data[a - 90 : a - 20])
+                            a_noise_amp = np.sqrt(a_noise_amp1 ** 2 + a_noise_amp2 ** 2 + a_noise_amp3 ** 2)
+                        else :
+                            a_amp1 = max(st[0].data[a - 50 : a + 150]) - min(st[0].data[a - 50 : a + 150])
+                            a_amp2 = max(st2[0].data[a - 50 : a + 150]) - min(st2[0].data[a - 50 : a + 150])
+                            a_amp3 = max(st3[0].data[a - 50 : a + 150]) - min(st3[0].data[a - 50 : a + 150])
+                            a_amp = np.sqrt(a_amp1 ** 2 + a_amp2 ** 2 + a_amp3 ** 2)
+                            t0_amp1 = max(st[0].data[t0 - 50 : t0 + 150]) - min(st[0].data[t0 - 50 : t0 + 150])
+                            t0_amp2 = max(st2[0].data[t0 - 50 : t0 + 150]) - min(st2[0].data[t0 - 50 : t0 + 150])
+                            t0_amp3 = max(st3[0].data[t0 - 50 : t0 + 150]) - min(st3[0].data[t0 - 50 : t0 + 150])
+                            t0_amp = np.sqrt(t0_amp1 ** 2 + t0_amp2 ** 2 + t0_amp3 ** 2)
+                            a_noise_amp1 = max(st[0].data[a - 250 : a - 50]) - min(st[0].data[a - 250 : a - 50])
+                            a_noise_amp2 = max(st2[0].data[a - 250: a - 50]) - min(st2[0].data[a - 250 : a - 50])
+                            a_noise_amp3 = max(st3[0].data[a - 250: a - 50]) - min(st3[0].data[a - 250 : a - 50])
+                            a_noise_amp = np.sqrt(a_noise_amp1 ** 2 + a_noise_amp2 ** 2 + a_noise_amp3 ** 2)
                         amplitude_line = "{:<4s}{:>4s}{:>3s}{:>27.3f}{:>11.3f}{:>11.3f}{:>11.3f}\n".format(sta, chan, net, a_noise_amp, a_noise_amp, a_amp, t0_amp)   
                         f.write(amplitude_line)
                     except:
@@ -351,6 +360,7 @@ def hash_draw_beachball_pygmt(hypoel_arc, amp, hash_output, output_dir, event_nu
         arc_filtered = arc_combined.loc[arc_combined['Event_number'] == str(event_num)]
         amp_filtered = amp_combined.loc[amp_combined['Event_number'] == str(event_num)]
 
+        print(arc_filtered)
         for _, arc in arc_filtered.iterrows():
             x = int(arc['Azimuth'])
             y = float(arc['Takeoff']) / 100
@@ -359,12 +369,15 @@ def hash_draw_beachball_pygmt(hypoel_arc, amp, hash_output, output_dir, event_nu
                 x += 180 
                 y = abs(0.90 - (y - 0.90))
             try:
-                if 'U' in arc['P_polarity']:
-                    fig.plot(x = x, y = y, size = [amp_filtered.loc[amp_filtered['Station'] == sta]['Normalized'].values[0]], style='cc', fill='black', pen='white')  # x : azimuth, y : takeoff
-                    fig.text(x = x, y = y, text= sta, font = "2.5p,white", transparency = 0)
-                elif 'D' in arc['P_polarity']:
-                    fig.plot(x = x, y = y, size = [amp_filtered.loc[amp_filtered['Station'] == sta]['Normalized'].values[0]], style='cc', fill='white', pen='black')  # x : azimuth, y : takeoff
-                    fig.text(x = x, y = y, text= sta, font = "2.5p", transparency = 0)
+                if 'I' in arc['P_polarity']:
+                    if 'U' in arc['P_polarity']:
+                        fig.plot(x = x, y = y, size = [amp_filtered.loc[amp_filtered['Station'] == sta]['Normalized'].values[0]], style='cc', fill='black', pen='white')  # x : azimuth, y : takeoff
+                        fig.text(x = x, y = y, text= sta, font = "2.5p,white", transparency = 0)
+                    elif 'D' in arc['P_polarity']:
+                        fig.plot(x = x, y = y, size = [amp_filtered.loc[amp_filtered['Station'] == sta]['Normalized'].values[0]], style='cc', fill='white', pen='black')  # x : azimuth, y : takeoff
+                        fig.text(x = x, y = y, text= sta, font = "2.5p", transparency = 0)
+                else:
+                    continue
             except:
                 continue
         
