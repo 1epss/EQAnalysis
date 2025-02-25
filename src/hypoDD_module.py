@@ -77,7 +77,7 @@ def hypoDD_write_phase(event_csv, traveltime, filename):
 
 
 # Compute Cross-correlation and write cc.dat for hypoDD
-def hypoDD_write_cc(event_directory, station, filename, phase, btime, channel_list, resampling_rate, freqmin, freqmax, minsec, maxsec, threshold):
+def hypoDD_write_cc(event_directory, station, filename, phase, btime, channel_list, resampling_rate, freqmin, freqmax, p_minsec, p_maxsec, s_minsec, s_maxsec, threshold):
     
     # Input station.dat from write_station_file module
     station_list = pd.read_csv(station, sep='\s+', header = None)
@@ -119,12 +119,15 @@ def hypoDD_write_cc(event_directory, station, filename, phase, btime, channel_li
                             if phase == 'P':
                                 time_slave = UTCDateTime(slave[0].stats.starttime + btime + slave[0].stats.sac.a) 
                                 time_master = UTCDateTime(master[0].stats.starttime + btime + master[0].stats.sac.a)
-                            elif phase == 'S':
-                                time_slave = UTCDateTime(slave[0].stats.starttime + 5 + slave[0].stats.sac.t0)
-                                time_master = UTCDateTime(master[0].stats.starttime + 5 + master[0].stats.sac.t0)
+                                wave_slave = slave[0].slice(time_slave - p_minsec, time_slave + p_maxsec).data
+                                wave_master = master[0].slice(time_master - p_minsec, time_master + p_maxsec).data
 
-                            wave_slave = slave[0].slice(time_slave - minsec, time_slave + maxsec).data
-                            wave_master = master[0].slice(time_master - minsec, time_master + maxsec).data
+                            elif phase == 'S':
+
+                                time_slave = UTCDateTime(slave[0].stats.starttime + btime + slave[0].stats.sac.t0)
+                                time_master = UTCDateTime(master[0].stats.starttime + btime + master[0].stats.sac.t0)
+                                wave_slave = slave[0].slice(time_slave - s_minsec, time_slave + s_maxsec).data
+                                wave_master = master[0].slice(time_master - s_minsec, time_master + s_maxsec).data
 
                             #numerator / denominator = np.corrcoef
                             numerator = np.sum(wave_slave * wave_master)

@@ -101,8 +101,10 @@ def main():
         resampling_rate = input("Enter the resampling_rate: ").strip()
         freqmin = input("Enter the freqmin: ").strip()
         freqmax = input("Enter the freqmax: ").strip()
-        minsec = input("Enter the minsec: ").strip()
-        maxsec = input("Enter the maxsec: ").strip()
+        p_minsec = input("Enter the p_minsec: ").strip()
+        p_maxsec = input("Enter the p_maxsec: ").strip()
+        s_minsec = input("Enter the s_minsec: ").strip()
+        s_maxsec = input("Enter the s_maxsec: ").strip()
         threshold = float(input("Enter the threshold: ").strip())
         if channel_list == "":
             channel_list = ['HHZ', 'ELZ', 'HGZ'],
@@ -118,15 +120,23 @@ def main():
             freqmax = 20.0
         else:
             freqmax = float(freqmax)
-        if minsec == "":
-            minsec = 0.1
+        if p_minsec == "":
+            p_minsec = 0.1
         else:
-            minsec = float(minsec)
-        if maxsec == "":
-            maxsec = 0.4
+            p_minsec = float(p_minsec)
+        if p_maxsec == "":
+            p_maxsec = 0.3
         else:
-            maxsec = float(maxsec)
-        hypoDD_write_cc(event_directory, station, filename, phase, btime, channel_list, resampling_rate, freqmin, freqmax, minsec, maxsec, threshold)
+            p_maxsec = float(p_maxsec)
+        if s_minsec == "":
+            s_minsec = 0.1
+        else:
+            s_minsec = float(s_minsec)
+        if s_maxsec == "":
+            s_maxsec = 0.4
+        else:
+            s_maxsec = float(s_maxsec)
+        hypoDD_write_cc(event_directory, station, filename, phase, btime, channel_list, resampling_rate, freqmin, freqmax, p_minsec, p_maxsec, s_minsec, s_maxsec, threshold)
         print(f"Cross-correlation file created successfully as '{filename}'.")
 
     else:
